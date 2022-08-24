@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actions
-
 name: Kernel Compiling CI
 on:
   push:
@@ -19,7 +17,6 @@ jobs:
           git clone https://github.com/rokusenpaislab/anykernel.git AK_DIR  --depth=1
           git clone https://github.com/Nicklas373/aosp-clang.git -b r412851  CLANG_DIR  --depth=1
           git clone https://android.googlesource.com/platform/system/libufdt scripts/ufdt/libufdt --depth=1
-
       - name: Compile
         run: |
           DIR="${PWD}"
@@ -36,20 +33,18 @@ jobs:
           [[ ! -d out ]] && mkdir out
           [[ -f "$KERNEL_IMG" ]] && rm "$KERNEL_IMG"
           find . -name "*.dtb" -type f -delete
-
           COMMIT=$(git log --pretty=format:"%s" -1)
           COMMIT_SHA=$(git rev-parse --short HEAD)
           KERNEL_BRANCH=$(git rev-parse --abbrev-ref HEAD)
           Repo=$(git config --get remote.origin.url)
           CAPTION=$(echo -e \
-          "\n HEAD: <code>$COMMIT_SHA: $COMMIT</code> 
-          \n Branch: <code>$KERNEL_BRANCH</code> 
-          \n <a href='$Repo'>Repo: </a> 
+          "\n HEAD: $COMMIT_SHA: $COMMIT 
+          \n Branch: $KERNEL_BRANCH 
+          \n Repo:  $Repo 
           ")
           curl -s "https://api.telegram.org/bot${{secrets.BOT_TOKEN}}/sendMessage" \
               -F parse_mode=html \
-              -F disable_web_page_preview=None \
-              -F text="<b>Kernel Compiling Started!</b>$CAPTION" \
+              -F text="- Kernel Compiling Started -  $CAPTION" \
               -F chat_id=${{secrets.TG_CHAT}} &> /dev/null
           make O=out vendor/violet-perf_defconfig -j$(nproc --all)
           BUILD_START=$(date +"%s")
@@ -61,7 +56,7 @@ jobs:
           BUILD_END=$(date +"%s")
           DIFF=$((BUILD_END - BUILD_START))
           if ! [ -a "$KERNEL_IMG" ]; then
-            echo -e "\n<b>Build failed!!</b>"
+            echo -e "\n> Build failed"
             curl -F document=@"error.log"  "https://api.telegram.org/bot${{secrets.BOT_TOKEN}}/sendDocument" \
             -F chat_id=${{secrets.TG_CHAT}} \
             -F parse_mode=html &> /dev/null
@@ -76,6 +71,6 @@ jobs:
           ZIP_NAME=Vertigo-V2.0-stable-$(date +%Y-%m-%d_%H%M).zip
           zip -r9 "$ZIP_NAME" ./* -x .git README.md ./*placeholder
           echo -e "\n> ZIP DONE.\n> File: $ZIP_NAME"
-          curl -F document=@"$ZIP_NAME" -F -F caption="Build Successfull!"  "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendDocument" \
+          curl -F document=@"$ZIP_NAME"  "https://api.telegram.org/bot${{ secrets.BOT_TOKEN }}/sendDocument" \
             -F chat_id=${{secrets.TG_CHAT}} \
             -F parse_mode=html &> /dev/null
